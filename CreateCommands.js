@@ -1,6 +1,5 @@
 const fs = require("fs");
 const path = require("path");
-const configTemplate = require("./templates/config.json");
 
 require('underscore').extend(module.exports, {inject: function init(_options){
     function CreateCommands(config) {
@@ -30,7 +29,7 @@ require('underscore').extend(module.exports, {inject: function init(_options){
 
     CreateCommands.prototype.populateDirectory = function (fullPath2Base) {
         return new Promise((resolve, reject) => {
-            fs.writeFile(path.join(fullPath2Base, 'config.json'), JSON.stringify(configTemplate, null, 2), (err) => {
+            fs.writeFile(path.join(fullPath2Base, 'config.json'), JSON.stringify(this.config.configTemplate, null, 2), (err) => {
                 if (err){
                     reject(err);
                 }

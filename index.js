@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 const fs = require("fs");
 const chalk = require("chalk");
-const servlessNoInst = require("servless");
-const createCommands = require("./CreateCommands").inject();
+const configTemplate = require("./templates/config.json");
+const CreateCommands = require("./CreateCommands").inject({configTemplate: configTemplate});
+const GenerateCommands = require("./GenerateCommands").inject();
 const program = require('commander');
 const path = require('path');
 
@@ -10,9 +11,28 @@ program
     .command('init')
     .description('retrieves data from AWS and displays locally')
     .action(() => {
-        createCommands.validateEmptyDirectory(process.cwd())
+        CreateCommands.validateEmptyDirectory(process.cwd())
             .then(results => {
-                return createCommands.populateDirectory(process.cwd());
+                return CreateCommands.populateDirectory(process.cwd());
+            })
+            .then(results => {
+                console.log(chalk.green(results));
+            })
+            .catch(err =>
+            {
+                console.log(chalk.red(err));
+            })
+        //servless.getPolicies();
+    });
+
+program
+    .command('generate [sam|yaml]')
+    .description('generates the appropriate files to allow this app to be uploaded to AWS')
+    .action(() => {
+        CreateCommands.validateFullDirectory(process.cwd())
+            .then(results => {
+                let theApp = require(path.join(process.cwd(), "app.js"));
+                return GenerateCommands.generate(theApp);
             })
             .then(results => {
                 console.log(chalk.green(results));
@@ -28,7 +48,7 @@ program
     .command('policies [remote|needed|diff]')
     .description('Used to view and compare policies issues to this user via IAM and policies needed to run this app')
     .action(command => {
-        createCommands.validateFullDirectory(process.cwd())
+        CreateCommands.validateFullDirectory(process.cwd())
             .then(results => {
                 let servless = servlessNoInst(require(path.join(process.cwd(), "config.json")));
                 switch (command) {
