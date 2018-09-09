@@ -18,6 +18,16 @@ require('underscore').extend(module.exports, {inject: function init(_options){
             })
     };
 
+    CreateCommands.prototype.validateFullDirectory = function (fullPath2Base) {
+        return this.validateEmptyDirectory(fullPath2Base)
+            .then(() => {
+                throw("Current directory is not a valid servless directory")
+            })
+            .catch(() =>{
+                return "Directory is structured correctly";
+            });
+    };
+
     CreateCommands.prototype.populateDirectory = function (fullPath2Base) {
         return new Promise((resolve, reject) => {
             fs.writeFile(path.join(fullPath2Base, 'config.json'), JSON.stringify(configTemplate, null, 2), (err) => {
