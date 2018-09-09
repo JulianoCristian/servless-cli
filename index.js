@@ -1,0 +1,3 @@
++ "bin": {
+    +   "snippet": "./index.js"
+    + }
