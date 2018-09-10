@@ -6,6 +6,7 @@ const CreateCommands = require("./CreateCommands").inject({configTemplate: confi
 const GenerateCommands = require("./GenerateCommands").inject();
 const program = require('commander');
 const path = require('path');
+const servlessNoInst = require('servless');
 
 program
     .command('init')
@@ -32,7 +33,7 @@ program
         let theGenerator = require("./policy-generators/SamGenerator").inject(require(path.join(process.cwd(), "config.json")));
         CreateCommands.validateFullDirectory(process.cwd())
             .then(results => {
-                let theApp = require(path.join(process.cwd(), "app.js")).getRoot();
+                let theApp = require(path.join(process.cwd(), "app.js")).getCurrentInstance().getRoot();
                 return GenerateCommands.generate(theApp, theGenerator);
             })
             .then(results => {
@@ -48,7 +49,8 @@ program
     .action(command => {
         CreateCommands.validateFullDirectory(process.cwd())
             .then(results => {
-                let servless = servlessNoInst(require(path.join(process.cwd(), "config.json")));
+                let userConfig = require(path.join(process.cwd(), "config.json"));
+                let servless = servlessNoInst.initWithConfig(userConfig);
                 switch (command) {
                     case "remote": {
                         return servless.getPolicies()
