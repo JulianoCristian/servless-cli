@@ -29,17 +29,15 @@ program
     .command('generate [sam|yaml]')
     .description('generates the appropriate files to allow this app to be uploaded to AWS')
     .action(() => {
+        let theGenerator = require("./policy-generators/SamGenerator").inject(require(path.join(process.cwd(), "config.json")));
         CreateCommands.validateFullDirectory(process.cwd())
             .then(results => {
-                let theApp = require(path.join(process.cwd(), "app.js"));
-                return GenerateCommands.generate(theApp);
+                let theApp = require(path.join(process.cwd(), "app.js")).getRoot();
+                return GenerateCommands.generate(theApp, theGenerator);
             })
             .then(results => {
+                theGenerator.writeToFile(path.join(process.cwd(), "template.yaml"));
                 console.log(chalk.green(results));
-            })
-            .catch(err =>
-            {
-                console.log(chalk.red(err));
             })
         //servless.getPolicies();
     });

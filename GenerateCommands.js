@@ -10,16 +10,17 @@ require('underscore').extend(module.exports, {inject: function init(_options){
             this.config = config;
         }
 
-        GenerateCommands.prototype.generate = function (theApp) {
+        GenerateCommands.prototype.generate = function (theApp, theGenerator) {
             let self = this;
             return Promise.resolve()
                 .then(() => {
-                    return self._internalGenerate(theApp, 0);
+                    return self._internalGenerate(theApp, theGenerator, 0);
                 });
         };
 
-        GenerateCommands.prototype._internalGenerate = function (appLevel, indentLevel) {
+        GenerateCommands.prototype._internalGenerate = function (appLevel, theGenerator, indentLevel) {
             if(appLevel.getChildren().length === 0){
+                theGenerator.addLambda(appLevel);
                 return "    ".repeat(indentLevel) + appLevel.getCommand()
             }
             else{
@@ -28,7 +29,7 @@ require('underscore').extend(module.exports, {inject: function init(_options){
                     startStr = "    ".repeat(indentLevel-1)+ "->  ";
                 }
                 return  startStr + appLevel.getPath() + "\n" + appLevel.getChildren().map((elem, index) => {
-                    return this._internalGenerate(elem, indentLevel + 1);
+                    return this._internalGenerate(elem, theGenerator, indentLevel + 1);
                 }).join("\n");
             }
         };
