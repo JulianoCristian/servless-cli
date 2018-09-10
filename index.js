@@ -6,7 +6,9 @@ const CreateCommands = require("./CreateCommands").inject({configTemplate: confi
 const GenerateCommands = require("./GenerateCommands").inject();
 const program = require('commander');
 const path = require('path');
-const servlessNoInst = require('servless');
+const awsPoliciesNoInst = require('./AwsPolicies');
+const Promise = require("bluebird");
+const flatten = require('flatten');
 
 program
     .command('init')
@@ -23,7 +25,7 @@ program
             {
                 console.log(chalk.red(err));
             })
-        //servless.getPolicies();
+        //servless.getRemotePolicies();
     });
 
 program
@@ -40,7 +42,7 @@ program
                 theGenerator.writeToFile(path.join(process.cwd(), "template.yaml"));
                 console.log(chalk.green(results));
             })
-        //servless.getPolicies();
+        //servless.getRemotePolicies();
     });
 
 program
@@ -49,21 +51,88 @@ program
     .action(command => {
         CreateCommands.validateFullDirectory(process.cwd())
             .then(results => {
-                let userConfig = require(path.join(process.cwd(), "config.json"));
-                let servless = servlessNoInst.initWithConfig(userConfig);
                 switch (command) {
                     case "remote": {
-                        return servless.getPolicies()
+                        let userConfig = require(path.join(process.cwd(), "config.json"));
+                        let servless = awsPoliciesNoInst.inject(userConfig);
+
+                        return servless.getRemotePolicies()
                             .then(policies => {
                                 policies.forEach(elem => {
                                     console.log(chalk.green(elem))
                                 });
                             });
                     } break;
+
+                    case "needed": {
+                        let userConfig = require(path.join(process.cwd(), "config.json"));
+                        let theApp = require(path.join(process.cwd(), "app.js")).getCurrentInstance().getRoot();
+                        let servless = awsPoliciesNoInst.inject(userConfig);
+
+                        return servless.getLocalPolicies(theApp)
+                            .then(policies => {
+                                policies.forEach(elem => {
+                                    console.log(chalk.green(elem))
+                                });
+                            });
+                    } break;
+
+                    case "diff": {
+                        let userConfig = require(path.join(process.cwd(), "config.json"));
+                        let theApp = require(path.join(process.cwd(), "app.js")).getCurrentInstance().getRoot();
+                        let servless = awsPoliciesNoInst.inject(userConfig);
+
+                        return servless.getLocalPolicies(theApp)
+                            .bind({})
+                            .then(localPolicies => {
+                                this["localPolicies"] = localPolicies;
+                                return servless.getRemotePolicies();
+                            })
+                            .then(remotePolicies => {
+                                let localPolicies = this["localPolicies"];
+                                this["remotePolicies"] = remotePolicies;
+
+                                let needAndHave = localPolicies.map(elem =>{
+                                    if(remotePolicies.indexOf(elem) !== -1){
+                                        return elem;
+                                    }
+                                    else{
+                                        return null;
+                                    }
+                                })
+                                    .filter(elem => {return elem !== null});
+
+                                let dontHaveAndNeed = localPolicies.map(elem =>{
+                                    if(remotePolicies.indexOf(elem) === -1){
+                                        return elem;
+                                    }
+                                    else{
+                                        return null;
+                                    }
+                                })
+                                    .filter(elem => {return elem !== null});
+
+
+                                let haveAndDontNeed = remotePolicies.map(elem => {
+                                    if(localPolicies.indexOf(elem) === -1 && elem != "IAMReadOnlyAccess"){
+                                        return elem;
+                                    }
+                                    else{
+                                        return null;
+                                    }
+                                })
+                                    .filter(elem => {return elem !== null});
+
+
+                                console.log(chalk.green("Needed Policies Already granted to your IAM user\n    " + needAndHave.join("\n    ")));
+                                console.log(chalk.red("Needed Policies NOT granted to your user\n    " + dontHaveAndNeed.join("\n    ")));
+                                console.log(chalk.blue("Policies your IAM user has that are not needed for this project\n    " + haveAndDontNeed.join("\n    ")));
+
+                                return;
+                            });
+                    } break;
+
                 }
-            })
-            .catch(err => {
-                console.log(chalk.red(err));
             })
     });
 

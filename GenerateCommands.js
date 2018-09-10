@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const Promise = require("bluebird");
 
 require('underscore').extend(module.exports, {inject: function init(_options){
         function GenerateCommands(config) {
