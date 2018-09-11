@@ -63,41 +63,31 @@ Resources:
 
 require('underscore').extend(module.exports, {inject: function init(_options){
         function SamGenerator(config) {
-            this.AWSTemplateFormatVersion = config.apiVersion;
             this.region = config.region;
             this.nodeRuntime =  config.nodeRuntime;
             this.yamlishJson = {};
-            this.yamlishJson["AWSTemplateFormatVersion"] = this.AWSTemplateFormatVersion;
+            this.yamlishJson["AWSTemplateFormatVersion"] = '2010-09-09';
+            this.yamlishJson["Transform"] = 'AWS::Serverless-2016-10-31';
             this.yamlishJson["Resources"] = {};
         }
 
-        /*
-  GetFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: index.get
-      Runtime: nodejs6.10
-      CodeUri: s3://bucket/api_backend.zip
-      Policies: AmazonDynamoDBReadOnlyAccess
-      Environment:
-        Variables:
-          TABLE_NAME: !Ref Table
-      Events:
-        GetResource:
-          Type: Api
-          Properties:
-            Path: /resource/{resourceId}
-            Method: get
-
-         */
         SamGenerator.prototype.addLambda = function (endpoint) {
-            this.yamlishJson["Resources"][endpoint.getGeneratedFunctionName()] = {
+            let pathUpperCase = endpoint.getFullPath().split(/[^a-z0-9]/).map(elem => {
+                if(elem.length > 0){
+                    return elem.charAt(0).toUpperCase() + elem.slice(1);
+                }
+                else{
+                    return null;
+                }
+            }).filter(elem => {return elem !== null}).join("") + endpoint.getCommand();
+
+
+            this.yamlishJson["Resources"][pathUpperCase] = {
                 Type:"AWS::Serverless::Function",
                 Properties:{
                     Handler: "app.handleCall",
                     Runtime: this.nodeRuntime,
                     Policies: endpoint.getRequiredAWSPolicies(),
-                    Environment: endpoint.getEnvironmentVariables(),
                     Events:{
                         GetResources:{
                             Type: "Api",

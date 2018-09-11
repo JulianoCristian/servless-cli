@@ -8,7 +8,8 @@ const program = require('commander');
 const path = require('path');
 const awsPoliciesNoInst = require('./AwsPolicies');
 const Promise = require("bluebird");
-const flatten = require('flatten');
+const util = require('util');
+const exec = util.promisify(require('child_process').exec);
 
 program
     .command('init')
@@ -29,7 +30,7 @@ program
     });
 
 program
-    .command('generate [sam|yaml]')
+    .command('package')
     .description('generates the appropriate files to allow this app to be uploaded to AWS')
     .action(() => {
         let theGenerator = require("./policy-generators/SamGenerator").inject(require(path.join(process.cwd(), "config.json")));
@@ -42,9 +43,67 @@ program
                 theGenerator.writeToFile(path.join(process.cwd(), "template.yaml"));
                 console.log(chalk.green(results));
             })
-        //servless.getRemotePolicies();
     });
 
+function generateCLI(){
+    let theGenerator = require("./policy-generators/SamGenerator").inject(require(path.join(process.cwd(), "config.json")));
+    return CreateCommands.validateFullDirectory(process.cwd())
+        .then(results => {
+            let theApp = require(path.join(process.cwd(), "app.js")).getCurrentInstance().getRoot();
+            return GenerateCommands.generate(theApp, theGenerator);
+        })
+        .then(results => {
+            theGenerator.writeToFile(path.join(process.cwd(), "template.yaml"));
+            console.log(chalk.green(results));
+        });
+}
+
+program
+    .command('generate')
+    .description('generates the appropriate files to allow this app to be uploaded to AWS')
+    .action(() => {
+        generateCLI();
+    });
+
+function runCommandLine(cmd){
+    console.log(cmd);
+    return exec(cmd);
+}
+
+function packageCLI() {
+    return runCommandLine("aws cloudformation package --template-file template.yaml --s3-bucket " +
+        require(path.join(process.cwd(), "config.json")).s3DeploymentBucket  +
+            " --output-template-file package.yaml");
+}
+
+program
+    .command('package')
+    .description('generates the appropriate files to allow this app to be uploaded to AWS')
+    .action(() => {
+        generateCLI()
+        .then(() => {
+            return packageCLI()
+        })
+    });
+
+function deployCLI() {
+    return runCommandLine("aws cloudformation deploy --template-file package.yaml --stack-name " +
+        require(path.join(process.cwd(), "config.json")).stackName +
+                " --capabilities CAPABILITY_IAM");
+}
+
+program
+    .command('deploy')
+    .description('generates the appropriate files to allow this app to be uploaded to AWS')
+    .action(() => {
+        generateCLI()
+            .then(() => {
+                return packageCLI()
+            })
+            .then(() => {
+                return deployCLI()
+            })
+    });
 program
     .command('policies [remote|needed|diff]')
     .description('Used to view and compare policies issues to this user via IAM and policies needed to run this app')
