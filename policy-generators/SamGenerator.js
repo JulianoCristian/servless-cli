@@ -97,13 +97,14 @@ require('underscore').extend(module.exports, {inject: function init(_options){
                     Handler: "app.handleCall",
                     Runtime: this.nodeRuntime,
                     Policies: endpoint.getRequiredAWSPolicies(),
+                    Environment: endpoint.getEnvironmentVariables(),
                     Events:{
                         GetResources:{
                             Type: "Api",
                             Properties:{
                                 Path: endpoint.getFullPath(),
                                 Method: endpoint.getCommand()
-                            }
+                            },
                         }
                     }
                 }
