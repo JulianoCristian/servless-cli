@@ -61,7 +61,7 @@ Resources:
     Type: AWS::Serverless::SimpleTable
  */
 
-require('underscore').extend(module.exports, {inject: function init(_options){
+require('underscore').extend(module.exports, {newInst: function init(_options){
         function SamGenerator(config) {
             this.region = config.region;
             this.nodeRuntime =  config.nodeRuntime;
