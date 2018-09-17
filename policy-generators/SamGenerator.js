@@ -71,34 +71,14 @@ require('underscore').extend(module.exports, {newInst: function init(_options){
             this.yamlishJson["Resources"] = {};
         }
 
-        SamGenerator.prototype.addLambda = function (endpoint) {
-            let pathUpperCase = endpoint.getFullPath().split(/[^a-z0-9]/).map(elem => {
-                if(elem.length > 0){
-                    return elem.charAt(0).toUpperCase() + elem.slice(1);
-                }
-                else{
-                    return null;
-                }
-            }).filter(elem => {return elem !== null}).join("") + endpoint.getCommand();
+        SamGenerator.prototype.addLambda = function (theEvent) {
+            this.yamlishJson["Resources"][theEvent.getNameForEvent()] = theEvent.getJSONForEvent();
+        };
 
-
-            this.yamlishJson["Resources"][pathUpperCase] = {
-                Type:"AWS::Serverless::Function",
-                Properties:{
-                    Handler: "app.handleCall",
-                    Runtime: this.nodeRuntime,
-                    Policies: endpoint.getRequiredAWSPolicies(),
-                    Events:{
-                        GetResources:{
-                            Type: "Api",
-                            Properties:{
-                                Path: endpoint.getFullPath(),
-                                Method: endpoint.getCommand()
-                            },
-                        }
-                    }
-                }
-            };
+        SamGenerator.prototype.addResource = function (theResource) {
+            if(theResource.getNameForResource() !== null){
+                this.yamlishJson["Resources"][theResource.getNameForResource()] = theResource.getJSONForResource();
+            }
         };
 
         SamGenerator.prototype.writeToFile = function(fileName){

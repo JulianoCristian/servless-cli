@@ -13,10 +13,14 @@ require('underscore').extend(module.exports, {inject: function init(_options){
 
         GenerateCommands.prototype.generate = function (theApp, theGenerator) {
             let self = this;
-            return Promise.resolve()
-                .then(() => {
-                    return self._internalGenerate(theApp, theGenerator, 0);
+                theApp.getEvents().map(elem => {
+                    return theGenerator.addLambda(elem);
                 });
+
+                var resourceHash = theApp.getResources().getResourceHash();
+                Object.keys(resourceHash).map(elem => {
+                    return theGenerator.addResource(resourceHash[elem]);
+                })
         };
 
         GenerateCommands.prototype._internalGenerate = function (appLevel, theGenerator, indentLevel) {

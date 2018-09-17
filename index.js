@@ -33,12 +33,12 @@ function generateCLI(){
     let theGenerator = require("./policy-generators/SamGenerator").newInst(require(path.join(process.cwd(), "config.json")));
     return CreateCommands.validateFullDirectory(process.cwd())
         .then(results => {
-            let theApp = require(path.join(process.cwd(), "app.js")).getCurrentInstance().getRoot();
+            let theApp = require(path.join(process.cwd(), "app.js")).getCurrentInstance();
             return GenerateCommands.generate(theApp, theGenerator);
         })
         .then(results => {
             theGenerator.writeToFile(path.join(process.cwd(), "template.yaml"));
-            console.log(chalk.green(results));
+            console.log(chalk.green("template file generated"));
         });
 }
 
@@ -46,12 +46,21 @@ program
     .command('generate')
     .description('generates the appropriate files to allow this app to be uploaded to AWS')
     .action(() => {
-        generateCLI();
+        return generateCLI()
+            .then(() => {
+                return runCommandLine("sam validate");
+            })
     });
 
 function runCommandLine(cmd){
-    console.log(cmd);
-    return exec(cmd);
+    console.log(chalk.blue(cmd));
+    return exec(cmd,
+        function(err, stdout, stderr) {
+            console.log(stderr);
+
+            // Node.js will invoke this callback when the
+            console.log(stdout);
+        });
 }
 
 function packageCLI() {
